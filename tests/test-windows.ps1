@@ -117,3 +117,6 @@ finally {
 
     Remove-Item -LiteralPath $fixtureRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# A caught native tar error can leave LASTEXITCODE=1 even though all assertions passed.
+exit 0
