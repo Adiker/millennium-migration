@@ -26,3 +26,13 @@ jobs:
       - name: Run tests
         shell: pwsh
         run: ./tests/test-windows.ps1
+
+  windows-legacy:
+    name: Windows PowerShell 5.1 tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run tests
+        shell: powershell
+        run: .\tests\test-windows.ps1

@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 
 Set-StrictMode -Version Latest
@@ -51,10 +51,10 @@ try {
         (Join-Path $steamRoot 'plugins')
     ) | Out-Null
 
-    Set-Content -LiteralPath (Join-Path $millenniumRoot 'config\settings.json') -Value '{"from":"windows"}' -NoNewline -Encoding utf8NoBOM
-    Set-Content -LiteralPath (Join-Path $millenniumRoot 'plugin\current.txt') -Value 'current-plugin' -NoNewline -Encoding utf8NoBOM
-    Set-Content -LiteralPath (Join-Path $steamRoot 'plugins\legacy.txt') -Value 'legacy-plugin' -NoNewline -Encoding utf8NoBOM
-    Set-Content -LiteralPath (Join-Path $millenniumRoot 'themes\dark.css') -Value 'dark-theme' -NoNewline -Encoding utf8NoBOM
+    Set-Content -LiteralPath (Join-Path $millenniumRoot 'config\settings.json') -Value '{"from":"windows"}' -NoNewline -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $millenniumRoot 'plugin\current.txt') -Value 'current-plugin' -NoNewline -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $steamRoot 'plugins\legacy.txt') -Value 'legacy-plugin' -NoNewline -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $millenniumRoot 'themes\dark.css') -Value 'dark-theme' -NoNewline -Encoding UTF8
 
     $env:STEAM_PATH = $steamRoot
     & $scriptPath export $archive
@@ -66,9 +66,9 @@ try {
     Assert-True (@($entries | Where-Object { $_ -match 'plugins/current\.txt' }).Count -gt 0) 'Archiwum nie zawiera aktualnego pluginu.'
     Assert-True (@($entries | Where-Object { $_ -match 'plugins/legacy\.txt' }).Count -gt 0) 'Archiwum nie zawiera starszego pluginu.'
 
-    Set-Content -LiteralPath (Join-Path $millenniumRoot 'config\stale.txt') -Value 'stale' -NoNewline -Encoding utf8NoBOM
-    Set-Content -LiteralPath (Join-Path $millenniumRoot 'plugin\stale.txt') -Value 'stale' -NoNewline -Encoding utf8NoBOM
-    Set-Content -LiteralPath (Join-Path $millenniumRoot 'themes\stale.css') -Value 'stale' -NoNewline -Encoding utf8NoBOM
+    Set-Content -LiteralPath (Join-Path $millenniumRoot 'config\stale.txt') -Value 'stale' -NoNewline -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $millenniumRoot 'plugin\stale.txt') -Value 'stale' -NoNewline -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $millenniumRoot 'themes\stale.css') -Value 'stale' -NoNewline -Encoding UTF8
 
     & $scriptPath import $archive
     Assert-True ($LASTEXITCODE -eq 0 -or $null -eq $LASTEXITCODE) 'Import Windows zakończył się błędem.'
