@@ -1,8 +1,10 @@
-# Millennium migration scripts
+# Millennium Migration Scripts
 
-Skrypty tworzą i odtwarzają przenośny backup konfiguracji, pluginów i motywów Millennium for Steam między Windows i Linux.
+[Polski](README.pl.md)
 
-## Użycie
+Cross-platform scripts for creating and restoring a portable backup of Millennium for Steam configuration, plugins, and themes between Windows and Linux.
+
+## Usage
 
 Windows PowerShell:
 
@@ -19,22 +21,22 @@ chmod +x ./millennium-backup.sh
 ./millennium-backup.sh import <backup.tar.gz>
 ```
 
-Jeżeli Steam jest zainstalowany w niestandardowym miejscu, ustaw `STEAM_PATH` przed uruchomieniem skryptu. Przed importem Steam musi być całkowicie zamknięty. Import tworzy backup stanu sprzed importu w katalogu wskazanego archiwum.
+If Steam is installed in a non-standard location, set `STEAM_PATH` before running the script. Steam must be fully closed before importing. The import creates a backup of the pre-import state next to the selected archive.
 
-Skrypty sprawdzają manifest backupu, odrzucają ścieżki absolutne i ścieżki zawierające `..`, a podczas eksportu pokazują sumę SHA-256.
+The scripts validate the backup manifest, reject absolute paths and paths containing `..`, and print a SHA-256 checksum during export.
 
-## Ścieżki
+## Paths
 
-Ścieżki odpowiadają aktualnej dokumentacji Millennium:
+The paths follow the current Millennium documentation:
 
 - Windows: `Steam/millennium/config`, `Steam/millennium/plugin`, `Steam/millennium/themes`
 - Linux: `~/.config/millennium`, `~/.local/share/millennium/plugins`, `Steam/steamui/skins`
 
-Eksport uwzględnia również starsze lokalizacje pluginów i konfiguracji, jeśli istnieją.
+Exports also include older plugin and configuration locations when they exist.
 
-## Testy
+## Tests
 
-Testy używają wyłącznie tymczasowych, sztucznych katalogów — nie wymagają zainstalowanego Millennium ani Steam:
+The tests use temporary fixture directories only; they do not require Steam or Millennium to be installed:
 
 ```powershell
 .\tests\test-windows.ps1
@@ -44,4 +46,4 @@ Testy używają wyłącznie tymczasowych, sztucznych katalogów — nie wymagaj�
 bash ./tests/test-linux.sh
 ```
 
-Źródło ścieżek: [Millennium File System Structure](https://docs.steambrew.app/users/getting-started/structure).
+Path reference: [Millennium File System Structure](https://docs.steambrew.app/users/getting-started/structure).
