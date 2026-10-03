@@ -68,13 +68,14 @@ jobs:
     name: Linux backup imported on Windows
     needs: linux
     runs-on: windows-latest
-    strategy:
-      matrix:
-        shell: [pwsh, powershell]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: linux-backup
-      - shell: ${{ matrix.shell }}
+      - name: Import with PowerShell 7
+        shell: pwsh
+        run: .\tests\test-windows.ps1 -ImportArchive linux-backup.tar.gz
+      - name: Import with Windows PowerShell 5.1
+        shell: powershell
         run: .\tests\test-windows.ps1 -ImportArchive linux-backup.tar.gz
