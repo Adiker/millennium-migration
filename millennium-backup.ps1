@@ -39,36 +39,39 @@ function Get-SteamRoot {
         $candidates.Add($env:STEAM_PATH)
     }
 
-    foreach ($registryPath in @(
-        'HKCU:\Software\Valve\Steam',
-        'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam',
-        'HKLM:\SOFTWARE\Valve\Steam'
-    )) {
-        try {
-            $props = Get-ItemProperty -LiteralPath $registryPath -ErrorAction Stop
+    # Jawne STEAM_PATH nie może po cichu skierować importu do innej instalacji.
+    if (-not $env:STEAM_PATH) {
+        foreach ($registryPath in @(
+            'HKCU:\Software\Valve\Steam',
+            'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam',
+            'HKLM:\SOFTWARE\Valve\Steam'
+        )) {
+            try {
+                $props = Get-ItemProperty -LiteralPath $registryPath -ErrorAction Stop
 
-            if ($props.SteamPath) {
-                $candidates.Add([string]$props.SteamPath)
+                if ($props.SteamPath) {
+                    $candidates.Add([string]$props.SteamPath)
+                }
+
+                if ($props.InstallPath) {
+                    $candidates.Add([string]$props.InstallPath)
+                }
             }
-
-            if ($props.InstallPath) {
-                $candidates.Add([string]$props.InstallPath)
+            catch {
+                # Brak danego klucza jest normalny.
             }
         }
-        catch {
-            # Brak danego klucza jest normalny.
+
+        $pf86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+        $pf   = [Environment]::GetEnvironmentVariable('ProgramFiles')
+
+        if ($pf86) {
+            $candidates.Add((Join-Path $pf86 'Steam'))
         }
-    }
 
-    $pf86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
-    $pf   = [Environment]::GetEnvironmentVariable('ProgramFiles')
-
-    if ($pf86) {
-        $candidates.Add((Join-Path $pf86 'Steam'))
-    }
-
-    if ($pf) {
-        $candidates.Add((Join-Path $pf 'Steam'))
+        if ($pf) {
+            $candidates.Add((Join-Path $pf 'Steam'))
+        }
     }
 
     foreach ($candidate in ($candidates | Select-Object -Unique)) {
@@ -378,7 +381,7 @@ function Import-MillenniumBackup {
 
             $preBackup = Join-Path `
                 $archiveDirectory `
-                ('millennium-preimport-windows-{0}.tar.gz' -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+                ('millennium-preimport-windows-{0}-{1}.tar.gz' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), [guid]::NewGuid().ToString('N'))
 
             Write-Log 'Tworzę backup stanu sprzed importu...'
             Export-MillenniumBackup -OutPath $preBackup
@@ -403,6 +406,11 @@ function Import-MillenniumBackup {
             -Source (Join-Path $stage 'plugins') `
             -Destination $script:PluginTarget `
             -Label 'plugins'
+
+        Replace-Directory `
+            -Source (Join-Path $stage 'plugins') `
+            -Destination $script:PluginCompatTarget `
+            -Label 'plugins (zgodność z dokumentacją)'
 
         Replace-Directory `
             -Source (Join-Path $stage 'themes') `
@@ -434,10 +442,11 @@ $script:SteamRoot = Get-SteamRoot
 $script:MillenniumRoot = Join-Path $script:SteamRoot 'millennium'
 
 #
-# Aktualny Millennium
+# Kod upstream: environment.cc i filesystem.cc; dokumentacja nadal używa 'plugin'.
 #
 $script:ConfigTarget = Join-Path $script:MillenniumRoot 'config'
-$script:PluginTarget = Join-Path $script:MillenniumRoot 'plugin'
+$script:PluginTarget = Join-Path $script:MillenniumRoot 'plugins'
+$script:PluginCompatTarget = Join-Path $script:MillenniumRoot 'plugin'
 $script:ThemeTarget  = Join-Path $script:MillenniumRoot 'themes'
 
 #
@@ -449,7 +458,7 @@ $script:ConfigSources = @(
 
 $script:PluginSources = @(
     $script:PluginTarget,
-    (Join-Path $script:MillenniumRoot 'plugins'),
+    $script:PluginCompatTarget,
     (Join-Path $script:SteamRoot 'plugins')
 )
 

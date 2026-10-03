@@ -63,11 +63,13 @@ detect_steam_root() {
     [[ -n "${STEAM_PATH:-}" ]] &&
         candidates+=("$STEAM_PATH")
 
-    candidates+=(
-        "$HOME/.steam/steam"
-        "$HOME/.local/share/Steam"
-        "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam"
-    )
+    if [[ -z "${STEAM_PATH:-}" ]]; then
+        candidates+=(
+            "$HOME/.steam/steam"
+            "$HOME/.local/share/Steam"
+            "$HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam"
+        )
+    fi
 
     for d in "${candidates[@]}"; do
         [[ -n "$d" && -d "$d" ]] || continue
@@ -93,14 +95,23 @@ CONFIG_ROOT="${XDG_CONFIG_HOME:-$HOME/.config}/millennium"
 MILLENNIUM_ROOT="$STEAM_ROOT/millennium"
 
 #
-# Aktualne ścieżki + fallbacki dla starszego Millennium.
+# Ścieżki z kodu upstream (environment.cc, filesystem.cc, scan.cc).
+# Linux respektuje nadpisania MILLENNIUM__CONFIG_PATH / __PLUGINS_PATH.
+# Dokumentowane ścieżki pozostają źródłami i celami kompatybilności.
 #
+CONFIG_TARGET="${MILLENNIUM__CONFIG_PATH:-$CONFIG_ROOT}"
+PLUGIN_TARGET="${MILLENNIUM__PLUGINS_PATH:-$DATA_ROOT/plugins}"
+THEME_TARGET="$MILLENNIUM_ROOT/themes"
+THEME_COMPAT_TARGET="$STEAM_ROOT/steamui/skins"
+
 CONFIG_SOURCES=(
+    "$CONFIG_TARGET"
     "$CONFIG_ROOT"
     "$MILLENNIUM_ROOT/config"
 )
 
 PLUGIN_SOURCES=(
+    "$PLUGIN_TARGET"
     "$DATA_ROOT/plugins"
     "$MILLENNIUM_ROOT/plugins"
     "$MILLENNIUM_ROOT/plugin"
@@ -109,17 +120,27 @@ PLUGIN_SOURCES=(
 
 THEME_SOURCES=(
     "$MILLENNIUM_ROOT/themes"
-    "$STEAM_ROOT/steamui/skins"
+    "$THEME_COMPAT_TARGET"
     "$DATA_ROOT/themes"
     "$HOME/.millennium/themes"
 )
 
-#
-# Docelowe ścieżki aktualnego Millennium 3.x.
-#
-CONFIG_TARGET="$CONFIG_ROOT"
-PLUGIN_TARGET="$DATA_ROOT/plugins"
-THEME_TARGET="$STEAM_ROOT/steamui/skins"
+LEGACY_CONFIG_JSON="$STEAM_ROOT/ext/config.json"
+LEGACY_QUICK_CSS="$STEAM_ROOT/ext/quickcss.css"
+
+add_legacy_config() {
+    local dest="$1"
+    local name src
+
+    for name in config.json quick.css; do
+        src="$LEGACY_CONFIG_JSON"
+        [[ "$name" == quick.css ]] && src="$LEGACY_QUICK_CSS"
+        if [[ -f "$src" && ! -e "$dest/$name" && ! -L "$dest/$name" ]]; then
+            mkdir -p -- "$dest"
+            cp -a -- "$src" "$dest/$name"
+        fi
+    done
+}
 
 merge_sources() {
     local dest="$1"
@@ -130,8 +151,11 @@ merge_sources() {
     local src
     local item
     local name
+    local -A seen=()
 
     for src in "$@"; do
+        [[ -z "${seen[$src]:-}" ]] || continue
+        seen[$src]=1
         [[ -d "$src" ]] || continue
 
         mkdir -p -- "$dest"
@@ -175,6 +199,8 @@ has_user_data() {
         has_directory_entries "$p" && return 0
     done
 
+    [[ -f "$LEGACY_CONFIG_JSON" || -f "$LEGACY_QUICK_CSS" ]] && return 0
+
     return 1
 }
 
@@ -197,6 +223,8 @@ export_backup() {
         "$stage/config" \
         "config" \
         "${CONFIG_SOURCES[@]}"
+
+    add_legacy_config "$stage/config"
 
     merge_sources \
         "$stage/plugins" \
@@ -314,7 +342,7 @@ import_backup() {
     )"
 
     if has_user_data; then
-        prebackup="$archive_dir/millennium-preimport-linux-$(date +'%Y%m%d-%H%M%S').tar.gz"
+        prebackup="$archive_dir/millennium-preimport-linux-$(date +'%Y%m%d-%H%M%S')-${stage##*.}.tar.gz"
 
         log "Tworzę backup stanu sprzed importu..."
 
@@ -344,6 +372,11 @@ import_backup() {
         "$stage/themes" \
         "$THEME_TARGET" \
         "themes"
+
+    replace_dir \
+        "$stage/themes" \
+        "$THEME_COMPAT_TARGET" \
+        "themes (zgodność z dokumentacją)"
 
     log ""
     log "Import zakończony."

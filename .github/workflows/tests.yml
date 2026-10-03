@@ -15,7 +15,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Run tests
+        env:
+          CROSS_EXPORT_ARCHIVE: linux-backup.tar.gz
         run: bash ./tests/test-linux.sh
+      - name: Upload Linux backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-backup
+          path: linux-backup.tar.gz
+          if-no-files-found: error
 
   windows:
     name: Windows tests
@@ -25,7 +33,15 @@ jobs:
         uses: actions/checkout@v4
       - name: Run tests
         shell: pwsh
+        env:
+          CROSS_EXPORT_ARCHIVE: windows-backup.tar.gz
         run: ./tests/test-windows.ps1
+      - name: Upload Windows backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-backup
+          path: windows-backup.tar.gz
+          if-no-files-found: error
 
   windows-legacy:
     name: Windows PowerShell 5.1 tests
@@ -36,3 +52,29 @@ jobs:
       - name: Run tests
         shell: powershell
         run: .\tests\test-windows.ps1
+
+  windows-to-linux:
+    name: Windows backup imported on Linux
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-backup
+      - run: bash ./tests/test-linux.sh windows-backup.tar.gz
+
+  linux-to-windows:
+    name: Linux backup imported on Windows
+    needs: linux
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        shell: [pwsh, powershell]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-backup
+      - shell: ${{ matrix.shell }}
+        run: .\tests\test-windows.ps1 -ImportArchive linux-backup.tar.gz
